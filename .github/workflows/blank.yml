@@ -55,6 +55,26 @@ jobs:
         else
           echo "::set-output name=changed::false"
         fi
+        
+    - name: 比较文件
+      id: compare-files
+      run: |
+        if [ "${{ steps.modify-file.outputs.changed }}" = 'true' ]; then
+          REPO="MengyuCai/ownCode"
+          FILE_PATH="clashConfig.ini"
+          RAW_URL="https://raw.githubusercontent.com/${REPO}/main/${FILE_PATH}"
+
+          # 下载当前仓库中的文件
+          curl -s -o oldfile.ini "${RAW_URL}"
+
+          # 比较两个文件的内容
+          if cmp -s file.ini oldfile.ini; then
+            echo "::set-output name=changed::false"
+          else
+            echo "::set-output name=changed::true"
+          fi
+        fi
+
 
     - name: 提交到仓库
       run: |
