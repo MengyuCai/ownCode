@@ -1,6 +1,7 @@
 name: 每小时检查文件变动并添加内容
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: '0 * * * *'
 
