@@ -18,8 +18,8 @@ jobs:
       run: |
         # 使用 curl 和 jq 检查最近的 commit 时间
         LAST_COMMIT=$(curl -s 'https://api.github.com/repos/ACL4SSR/ACL4SSR/commits?path=Clash/config/ACL4SSR_Online_Full_Netflix.ini' | jq -r '.[0].commit.author.date')
-        LAST_HOUR=$(date -u -d '1 hour ago' +'%Y-%m-%dT%H:%M:%SZ')
-        if [[ "${LAST_COMMIT}" > "${LAST_HOUR}" ]]; then
+        LAST_DAY=$(date -u -d '1 day ago' +'%Y-%m-%dT%H:%M:%SZ')
+        if [[ "${LAST_COMMIT}" > "${LAST_DAY}" ]]; then
           echo "changed=true" >> $GITHUB_ENV
         else
           echo "changed=false" >> $GITHUB_ENV
