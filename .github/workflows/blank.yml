@@ -20,15 +20,15 @@ jobs:
         LAST_COMMIT=$(curl -s 'https://api.github.com/repos/ACL4SSR/ACL4SSR/commits?path=Clash/config/ACL4SSR_Online_Full_Netflix.ini' | jq -r '.[0].commit.author.date')
         LAST_HOUR=$(date -u -d '1 hour ago' +'%Y-%m-%dT%H:%M:%SZ')
         if [[ "${LAST_COMMIT}" > "${LAST_HOUR}" ]]; then
-          echo "::set-output name=changed::true"
+          echo "changed=true" >> $GITHUB_ENV
         else
-          echo "::set-output name=changed::false"
+          echo "changed=false" >> $GITHUB_ENV
         fi
 
     - name: 复制并修改文件
       id: modify-file
       run: |
-        if [ "${{ steps.check-file.outputs.changed }}" = 'true' ]; then
+        if [ "${{ env.changed }}" = 'true' ]; then
           FILE_PATH="Clash/config/ACL4SSR_Online_Full_Netflix.ini"
           REPO="ACL4SSR/ACL4SSR"
           RAW_URL="https://raw.githubusercontent.com/${REPO}/master/${FILE_PATH}"
@@ -51,15 +51,15 @@ jobs:
           # 打印文件内容
           cat file.ini
 
-          echo "::set-output name=changed::true"
+          echo "changed=true" >> $GITHUB_ENV
         else
-          echo "::set-output name=changed::false"
+          echo "changed=false" >> $GITHUB_ENV
         fi
         
     - name: 比较文件
       id: compare-files
       run: |
-        if [ "${{ steps.modify-file.outputs.changed }}" = 'true' ]; then
+        if [ "${{ env.changed }}" = 'true' ]; then
           REPO="MengyuCai/ownCode"
           FILE_PATH="clashConfig.ini"
           RAW_URL="https://raw.githubusercontent.com/${REPO}/main/${FILE_PATH}"
@@ -69,16 +69,16 @@ jobs:
 
           # 比较两个文件的内容
           if cmp -s file.ini oldfile.ini; then
-            echo "::set-output name=changed::false"
+            echo "changed=false" >> $GITHUB_ENV
           else
-            echo "::set-output name=changed::true"
+            echo "changed=true" >> $GITHUB_ENV
           fi
         fi
 
 
     - name: 提交到仓库
       run: |
-        if [ "${{ steps.modify-file.outputs.changed }}" = 'true' ]; then
+        if [ "${{ env.changed }}" = 'true' ]; then
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
           git clone https://${GH_TOKEN}@github.com/MengyuCai/ownCode.git
