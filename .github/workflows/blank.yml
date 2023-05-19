@@ -1,0 +1,75 @@
+name: 每小时检查文件变动并添加内容
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+
+jobs:
+  check-and-update:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 安装 jq 和 tac
+      run: sudo apt-get install -y jq moreutils
+
+    - name: 检查文件变动
+      id: check-file
+      run: |
+        # 使用 curl 和 jq 检查最近的 commit 时间
+        LAST_COMMIT=$(curl -s 'https://api.github.com/repos/ACL4SSR/ACL4SSR/commits?path=Clash/config/ACL4SSR_Online_Full_Netflix.ini' | jq -r '.[0].commit.author.date')
+        LAST_HOUR=$(date -u -d '1 hour ago' +'%Y-%m-%dT%H:%M:%SZ')
+        if [[ "${LAST_COMMIT}" > "${LAST_HOUR}" ]]; then
+          echo "::set-output name=changed::true"
+        else
+          echo "::set-output name=changed::false"
+        fi
+
+    - name: 复制并修改文件
+      id: modify-file
+      run: |
+        if [ "${{ steps.check-file.outputs.changed }}" = 'true' ]; then
+          FILE_PATH="Clash/config/ACL4SSR_Online_Full_Netflix.ini"
+          REPO="ACL4SSR/ACL4SSR"
+          RAW_URL="https://raw.githubusercontent.com/${REPO}/master/${FILE_PATH}"
+
+          # 下载文件
+          curl -s -o file.ini "${RAW_URL}"
+
+          # 在第一个出现 "ruleset" 的关键词前添加一行
+          awk '/ruleset/ && !modif { printf("ruleset=百胜VPN,https://raw.githubusercontent.com/MengyuCai/ownCode/main/yumVPN.list\n"); modif=1 } { print }' file.ini > newfile.ini
+
+          # 反转文件，将最后一个出现的 "custom_proxy_group" 变为第一个出现的
+          tac newfile.ini > reversed.ini
+
+          # 在第一个出现 "custom_proxy_group" 的行之后添加一行，然后再反转回来
+          awk '/custom_proxy_group/ && !modif { printf("%s\n%s\n", $0, "custom_proxy_group=百胜VPN`select`[]REJECT`[]DIRECT"); modif=1; next } { print }' reversed.ini | tac > newfile.ini
+
+          # 将新文件重命名为原文件，以便后续步骤可以使用
+          mv newfile.ini file.ini
+
+          echo "::set-output name=changed::true"
+        else
+          echo "::set-output name=changed::false"
+        fi
+
+    - name: 检出仓库
+      uses: actions/checkout@v2
+      with:
+        repository: 'MengyuCai/ownCode'
+        token: ${{ secrets.GH_TOKEN }}
+
+    - name: 复制文件到仓库并提交
+      run: |
+        if [ "${{ steps.modify-file.outputs.changed }}" = 'true' ]; then
+          # 复制文件到仓库
+          cp file.ini ./clashConfig.ini
+
+          # 配置 Git
+          git config user.name "cmy"
+          git config user.email "q497478897@gmail.com"
+
+          # 提交修改
+          git add clashConfig.ini
+          git commit -m "自动更新文件"
+          git push --force
+        fi
