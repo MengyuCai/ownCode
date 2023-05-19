@@ -1,7 +1,6 @@
 name: 每小时检查文件变动并添加内容
 
 on:
-  workflow_dispatch:
   schedule:
     - cron: '0 * * * *'
 
@@ -48,29 +47,10 @@ jobs:
           # 将新文件重命名为原文件，以便后续步骤可以使用
           mv newfile.ini file.ini
 
+          # 打印文件内容
+          cat file.ini
+
           echo "::set-output name=changed::true"
         else
           echo "::set-output name=changed::false"
-        fi
-
-    - name: 检出仓库
-      uses: actions/checkout@v2
-      with:
-        repository: 'MengyuCai/ownCode'
-        token: ${{ secrets.GH_TOKEN }}
-
-    - name: 复制文件到仓库并提交
-      run: |
-        if [ "${{ steps.modify-file.outputs.changed }}" = 'true' ]; then
-          # 复制文件到仓库
-          cp file.ini ./clashConfig.ini
-
-          # 配置 Git
-          git config user.name "cmy"
-          git config user.email "q497478897@gmail.com"
-
-          # 提交修改
-          git add clashConfig.ini
-          git commit -m "自动更新文件"
-          git push --force
         fi
