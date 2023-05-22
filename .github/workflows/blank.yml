@@ -13,68 +13,41 @@ jobs:
     - name: 安装 jq 和 tac
       run: sudo apt-get install -y jq moreutils
 
-    - name: 检查文件变动
-      id: check-file
-      run: |
-        # 使用 curl 和 jq 检查最近的 commit 时间
-        LAST_COMMIT=$(curl -s 'https://api.github.com/repos/ACL4SSR/ACL4SSR/commits?path=Clash/config/ACL4SSR_Online_Full_Netflix.ini' | jq -r '.[0].commit.author.date')
-        LAST_DAY=$(date -u -d '1 day ago' +'%Y-%m-%dT%H:%M:%SZ')
-
-        # 将日期转换为时间戳
-        LAST_COMMIT_TIMESTAMP=$(date -d "${LAST_COMMIT}" +%s)
-        LAST_DAY_TIMESTAMP=$(date -d "${LAST_DAY}" +%s)
-
-        # 比较时间戳
-        if [[ "${LAST_COMMIT_TIMESTAMP}" -gt "${LAST_DAY_TIMESTAMP}" ]]; then
-          echo "changed=true" >> $GITHUB_ENV
-        else
-          echo "changed=false" >> $GITHUB_ENV
-        fi
-
     - name: 复制并修改文件
       id: modify-file
       run: |
-        if [ "${{ env.changed }}" = 'true' ]; then
-          FILE_PATH="Clash/config/ACL4SSR_Online_Full_Netflix.ini"
-          REPO="ACL4SSR/ACL4SSR"
-          RAW_URL="https://raw.githubusercontent.com/${REPO}/master/${FILE_PATH}"
+        FILE_PATH="Clash/config/ACL4SSR_Online_Full_Netflix.ini"
+        REPO="ACL4SSR/ACL4SSR"
+        RAW_URL="https://raw.githubusercontent.com/${REPO}/master/${FILE_PATH}"
 
-          # 下载文件
-          curl -s -o file.ini "${RAW_URL}"
+        # 下载文件
+        curl -s -o file.ini "${RAW_URL}"
 
-          # 在第一个出现 "ruleset" 的关键词前添加一行
-          awk '/ruleset/ && !modif { printf("ruleset=自定义规则,https://raw.githubusercontent.com/MengyuCai/ownCode/main/customClashRules.list\n"); modif=1 } { print }' file.ini > newfile.ini
+        # 在第一个出现 "ruleset" 的关键词前添加一行
+        awk '/ruleset/ && !modif { printf("ruleset=自定义规则,https://raw.githubusercontent.com/MengyuCai/ownCode/main/customClashRules.list\n"); modif=1 } { print }' file.ini > newfile.ini
 
-          # 在第6个出现 "custom_proxy_group" 的行前添加一行
-          awk 'BEGIN {count=0} /custom_proxy_group/ {count++} {if (count==6) printf("custom_proxy_group=自定义规则`select`[]REJECT`[]DIRECT\n"); print}' newfile.ini > file.ini
+        # 在第6个出现 "custom_proxy_group" 的行前添加一行
+        awk 'BEGIN {count=0} /custom_proxy_group/ {count++} {if (count==6) printf("custom_proxy_group=自定义规则`select`[]REJECT`[]DIRECT\n"); print}' newfile.ini > file.ini
 
-          # 打印文件内容
-          cat file.ini
+        # 打印文件内容
+        cat file.ini
 
-          echo "changed=true" >> $GITHUB_ENV
-        else
-          echo "changed=false" >> $GITHUB_ENV
-        fi
-        
     - name: 比较文件
       id: compare-files
       run: |
-        if [ "${{ env.changed }}" = 'true' ]; then
-          REPO="MengyuCai/ownCode"
-          FILE_PATH="clashConfig.ini"
-          RAW_URL="https://raw.githubusercontent.com/${REPO}/main/${FILE_PATH}"
+        REPO="MengyuCai/ownCode"
+        FILE_PATH="clashConfig.ini"
+        RAW_URL="https://raw.githubusercontent.com/${REPO}/main/${FILE_PATH}"
 
-          # 下载当前仓库中的文件
-          curl -s -o oldfile.ini "${RAW_URL}"
+        # 下载当前仓库中的文件
+        curl -s -o oldfile.ini "${RAW_URL}"
 
-          # 比较两个文件的内容
-          if cmp -s file.ini oldfile.ini; then
-            echo "changed=false" >> $GITHUB_ENV
-          else
-            echo "changed=true" >> $GITHUB_ENV
-          fi
+        # 比较两个文件的内容
+        if cmp -s file.ini oldfile.ini; then
+          echo "changed=false" >> $GITHUB_ENV
+        else
+          echo "changed=true" >> $GITHUB_ENV
         fi
-
 
     - name: 提交到仓库
       run: |
