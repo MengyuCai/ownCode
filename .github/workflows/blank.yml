@@ -40,4 +40,4 @@ jobs:
         
 
         # 打印文件内容
-        cat file.ini
+        cat newfile.ini
