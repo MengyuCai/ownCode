@@ -24,10 +24,10 @@ jobs:
         curl -s -o file.ini "${RAW_URL}"
 
         # 在第一个出现 "ruleset" 的关键词前添加一行
-        awk '/ruleset/ && !modif { printf("ruleset=自定义规则,https://raw.githubusercontent.com/MengyuCai/ownCode/main/customClashRules.list\n"); modif=1 } { print }' file.ini > newfile.ini
+        awk '/ruleset/ && !modif { printf("ruleset=直连规则,https://raw.githubusercontent.com/MengyuCai/ownCode/main/directCustomClashRules.list\n"); modif=1 } { print }' file.ini > newfile.ini
 
         # 在第6个出现 "custom_proxy_group" 的行前添加一行
-        awk 'BEGIN {count=0} /custom_proxy_group/ {count++} {if (count==6) printf("custom_proxy_group=自定义规则`select`[]REJECT`[]DIRECT\n"); print}' newfile.ini > file.ini
+        awk 'BEGIN {count=0} /custom_proxy_group/ {count++} {if (count==6) printf("custom_proxy_group=直连规则`select`[]REJECT`[]DIRECT\n"); print}' newfile.ini > file.ini
 
         # 打印文件内容
         cat file.ini
