@@ -36,7 +36,7 @@ jobs:
         awk 'BEGIN {count=0} /custom_proxy_group/ {count++} {if (count==7) printf("custom_proxy_group=代理规则`select`[]🚀 节点选择`[]♻️ 自动选择`[]🇸🇬 狮城节点`[]🇭🇰 香港节点`[]🇨🇳 台湾节点`[]🇯🇵 日本节点`[]🇺🇲 美国节点`[]🇰🇷 韩国节点`[]🚀 手动切换`[]DIRECT\n"); print}' newfile.ini > file.ini
         
         # 在第一个出现 "ruleset=💬 OpenAi" 的关键词前添加一行
-        awk '/ruleset=💬 OpenAi/ && !modif { printf("ruleset=💬 OpenAi,https://raw.githubusercontent.com/wgetnz/chatgpt-openclash/main/chatgpt.list\n"); modif=1 } { print }' file.ini > newfile.ini
+        awk '/ruleset=💬 OpenAi/ && !modif { printf("ruleset=💬 OpenAi,https://raw.githubusercontent.com/waltcow/chatgpt-openclash/main/chatgpt.list\n"); modif=1 } { print }' file.ini > newfile.ini
         
 
         # 打印文件内容
