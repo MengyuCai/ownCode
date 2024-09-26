@@ -10,36 +10,47 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: 安装 jq 和 tac
+    - name: 安装 jq 和 moreutils
       run: sudo apt-get install -y jq moreutils
 
-    - name: 复制并修改文件
+    - name: 下载并修改文件
       id: modify-file
       run: |
         FILE_PATH="Clash/config/ACL4SSR_Online_Full_Netflix.ini"
         REPO="ACL4SSR/ACL4SSR"
         RAW_URL="https://raw.githubusercontent.com/${REPO}/master/${FILE_PATH}"
 
-        # 下载文件
-        curl -s -o file.ini "${RAW_URL}"
+        # 下载文件，增加容错机制
+        curl -s -f -o file.ini "${RAW_URL}" || { echo "文件下载失败"; exit 1; }
 
-        # 在第一个出现 "ruleset" 的关键词前添加一行
-        awk '/ruleset/ && !modif { printf("ruleset=代理规则,https://raw.githubusercontent.com/MengyuCai/ownCode/main/proxyCustomClashRules.list\n"); modif=1 } { print }' file.ini > newfile.ini
-        
-        # 在第一个出现 "ruleset" 的关键词前添加一行
-        awk '/ruleset/ && !modif { printf("ruleset=直连规则,https://raw.githubusercontent.com/MengyuCai/ownCode/main/directCustomClashRules.list\n"); modif=1 } { print }' newfile.ini > file.ini
+        # 进行文件修改
+        awk '
+        /ruleset/ && !modif1 { 
+          print "ruleset=代理规则,https://raw.githubusercontent.com/MengyuCai/ownCode/main/proxyCustomClashRules.list";
+          modif1=1;
+        }
+        /ruleset/ && !modif2 {
+          print "ruleset=直连规则,https://raw.githubusercontent.com/MengyuCai/ownCode/main/directCustomClashRules.list";
+          modif2=1;
+        }
+        BEGIN {count1=0; count2=0}
+        /custom_proxy_group/ {
+          count1++;
+          count2++;
+          if (count1==6) {
+            print "custom_proxy_group=直连规则`select`[]REJECT`[]DIRECT";
+          }
+          if (count2==7) {
+            print "custom_proxy_group=代理规则`select`[]🚀 节点选择`[]♻️ 自动选择`[]🇸🇬 狮城节点`[]🇭🇰 香港节点`[]🇨🇳 台湾节点`[]🇯🇵 日本节点`[]🇺🇲 美国节点`[]🇰🇷 韩国节点`[]🚀 手动切换`[]DIRECT";
+          }
+        }
+        /ruleset=💬 OpenAi/ && !modif3 {
+          print "ruleset=💬 OpenAi,https://raw.githubusercontent.com/waltcow/chatgpt-openclash/main/chatgpt.list";
+          modif3=1;
+        }
+        {print}' file.ini > newfile.ini
 
-        # 在第6个出现 "custom_proxy_group" 的行前添加一行
-        awk 'BEGIN {count=0} /custom_proxy_group/ {count++} {if (count==6) printf("custom_proxy_group=直连规则`select`[]REJECT`[]DIRECT\n"); print}' file.ini > newfile.ini
-        
-        # 在第7个出现 "custom_proxy_group" 的行前添加一行
-        awk 'BEGIN {count=0} /custom_proxy_group/ {count++} {if (count==7) printf("custom_proxy_group=代理规则`select`[]🚀 节点选择`[]♻️ 自动选择`[]🇸🇬 狮城节点`[]🇭🇰 香港节点`[]🇨🇳 台湾节点`[]🇯🇵 日本节点`[]🇺🇲 美国节点`[]🇰🇷 韩国节点`[]🚀 手动切换`[]DIRECT\n"); print}' newfile.ini > file.ini
-        
-        # 在第一个出现 "ruleset=💬 OpenAi" 的关键词前添加一行
-        awk '/ruleset=💬 OpenAi/ && !modif { printf("ruleset=💬 OpenAi,https://raw.githubusercontent.com/waltcow/chatgpt-openclash/main/chatgpt.list\n"); modif=1 } { print }' file.ini > newfile.ini
-        
-
-        # 打印文件内容
+        # 打印文件内容用于调试
         cat newfile.ini
 
     - name: 比较文件
@@ -49,10 +60,10 @@ jobs:
         FILE_PATH="clashConfig.ini"
         RAW_URL="https://raw.githubusercontent.com/${REPO}/main/${FILE_PATH}"
 
-        # 下载当前仓库中的文件
-        curl -s -o oldfile.ini "${RAW_URL}"
+        # 下载当前仓库中的文件，增加容错机制
+        curl -s -f -o oldfile.ini "${RAW_URL}" || { echo "文件下载失败，继续提交新文件"; touch oldfile.ini; }
 
-        # 比较两个文件的内容
+        # 比较文件内容
         if cmp -s newfile.ini oldfile.ini; then
           echo "changed=false" >> $GITHUB_ENV
         else
@@ -60,16 +71,15 @@ jobs:
         fi
 
     - name: 提交到仓库
+      if: env.changed == 'true'
       run: |
-        if [ "${{ env.changed }}" = 'true' ]; then
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
-          git clone https://${GH_TOKEN}@github.com/MengyuCai/ownCode.git
-          cp newfile.ini ownCode/clashConfig.ini
-          cd ownCode
-          git add .
-          git commit -m "更新 Clash 配置文件"
-          git push
-        fi
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        git clone https://${GH_TOKEN}@github.com/MengyuCai/ownCode.git
+        cp newfile.ini ownCode/clashConfig.ini
+        cd ownCode
+        git add .
+        git commit -m "更新 Clash 配置文件"
+        git push
       env:
         GH_TOKEN: ${{ secrets.GH_TOKEN }}
