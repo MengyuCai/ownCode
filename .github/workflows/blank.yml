@@ -48,6 +48,12 @@ jobs:
           print "ruleset=💬 OpenAi,https://raw.githubusercontent.com/waltcow/chatgpt-openclash/main/chatgpt.list";
           modif3=1;
         }
+        /ruleset=🎶 网易音乐/ && !modif4 {
+          print $0;
+          print "ruleset=🎶 网易音乐,https://raw.githubusercontent.com/MengyuCai/ownCode/main/NetEaseMusicRules.list";
+          modif4=1;
+          next;
+        }
         {print}' file.ini > newfile.ini
 
         # 打印文件内容用于调试
