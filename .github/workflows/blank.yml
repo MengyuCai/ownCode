@@ -16,7 +16,7 @@ jobs:
     - name: 下载并修改文件
       id: modify-file
       run: |
-        FILE_PATH="Clash/config/ACL4SSR_Online_Full_Netflix.ini"
+        FILE_PATH="Clash/config/ACL4SSR_Online_Full.ini"
         REPO="ACL4SSR/ACL4SSR"
         RAW_URL="https://raw.githubusercontent.com/${REPO}/master/${FILE_PATH}"
 
